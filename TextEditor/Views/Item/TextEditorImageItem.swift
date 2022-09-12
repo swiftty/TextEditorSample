@@ -14,25 +14,22 @@ import UIKit
     }
 
     private var cancellables: Set<AnyCancellable> = .init()
+    private var heightConstraint: NSLayoutConstraint?
 
     private lazy var setUp: () -> Void = {
-        guard let boundsDidSetPublisher = (contentView as? TextEditorItemImageView)?.boundsDidSetPublisher else {
-            return {}
-        }
-
         $image
-            .combineLatest(boundsDidSetPublisher) { ($0, $1) }
-            .sink { [weak self] args in
-                let image = args.0
-                let bounds = args.1
-                (self?.contentView as? UIImageView)?.image = image
-                guard let self = self, let image = image else {
-                    self?._contentSizeDidChangeSubject.send(.zero)
-                    return
+            .sink { [weak self] image in
+                (self?.contentView as? TextEditorItemImageView)?.image = image
+                guard let height = self?.contentView.heightAnchor, let width = self?.contentView.widthAnchor else { return }
+                self?.heightConstraint?.isActive = false
+                if let image {
+                    let aspect = image.size.height / image.size.width
+                    self?.heightConstraint = height.constraint(equalTo: width, multiplier: aspect)
+                } else {
+                    self?.heightConstraint = height.constraint(equalToConstant: 0)
+                    self?.heightConstraint?.priority = .defaultHigh
                 }
-                let aspect = image.size.height / image.size.width
-                let height = bounds.size.width * aspect
-                self._contentSizeDidChangeSubject.send(CGSize(width: bounds.size.width, height: height))
+                self?.heightConstraint?.isActive = true
             }
             .store(in: &cancellables)
         return {}
@@ -45,9 +42,6 @@ import UIKit
         imageView.accessibilityIdentifier = #function
         return imageView
     }()
-
-    private let _contentSizeDidChangeSubject: PassthroughSubject<CGSize, Never> = .init()
-    public var contentSizeDidChangePublisher: AnyPublisher<CGSize, Never> { _contentSizeDidChangeSubject.eraseToAnyPublisher() }
 
     @Published public var image: UIImage?
 }

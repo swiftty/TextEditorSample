@@ -75,7 +75,6 @@ public protocol TextEditorItemViewDelegate: AnyObject {
         contentView = nil
         contentViewConstraints.forEach { $0.isActive = false }
         contentViewConstraints = []
-        cancellables.removeAll()
         contentViewHeightConstraint = nil
     }
 
@@ -84,7 +83,6 @@ public protocol TextEditorItemViewDelegate: AnyObject {
         guard let item = item else { return }
         contentView = item.contentView
         addContentView(item.contentView)
-        subscribeContentSize()
     }
 
     public var contentView: UIView?
@@ -95,29 +93,13 @@ public protocol TextEditorItemViewDelegate: AnyObject {
     private func addContentView(_ view: UIView) {
         view.translatesAutoresizingMaskIntoConstraints = false
         addSubview(view)
-        let heightConstraint = view.heightAnchor.constraint(equalToConstant: TextEditorConstant.minimumItemHeight)
         contentViewConstraints = [
             view.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 16),
             view.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: 8),
-            heightConstraint
+            view.heightAnchor.constraint(greaterThanOrEqualToConstant: TextEditorConstant.minimumItemHeight)
         ]
         NSLayoutConstraint.activate(contentViewConstraints)
-        contentViewHeightConstraint = heightConstraint
-    }
-
-    private var cancellables: Set<AnyCancellable> = .init()
-
-    private func subscribeContentSize() {
-        guard let item = item else { return }
-        item.contentSizeDidChangePublisher
-            .map { max(TextEditorConstant.minimumItemHeight, $0.height) }
-            .removeDuplicates()
-            .sink { [weak self] height in
-                self?.contentViewHeightConstraint?.constant = height
-                self?.invalidateIntrinsicContentSize()
-            }
-            .store(in: &cancellables)
     }
 }

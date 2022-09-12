@@ -29,13 +29,4 @@ open class TextEditorItemImageView: UIImageView {
         backgroundColor = TextEditorConstant.Color.background
         return {}
     }()
-
-    override open var bounds: CGRect {
-        didSet {
-            _boundsDidSetSubject.send(bounds)
-        }
-    }
-
-    private let _boundsDidSetSubject: PassthroughSubject<CGRect, Never> = .init()
-    public var boundsDidSetPublisher: AnyPublisher<CGRect, Never> { _boundsDidSetSubject.eraseToAnyPublisher() }
 }
